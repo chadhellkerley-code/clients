@@ -210,7 +210,7 @@ const fbApp = initializeApp(firebaseConfig);
 const auth = getAuth(fbApp);
 const db = getFirestore(fbApp);
 
-const ADMIN_EMAILS = ["matidiazlife@gmail.com", "matidiazlife.1@gmail.com"];
+const ADMIN_EMAILS = ["matidiazlife.1@gmail.com"];
 const EMAIL_STORAGE_KEY = "diag_pending_email";
 
 /* ---------------- Datos del diagnóstico ---------------- */
@@ -734,6 +734,10 @@ async function afterLogin(user){
 
 onAuthStateChanged(auth, async (user)=>{
   if(user){
+    if(ADMIN_EMAILS.includes((user.email||"").toLowerCase())){
+      window.location.replace("/admin");
+      return;
+    }
     await afterLogin(user);
   }else{
     if(isSignInWithEmailLink(auth, window.location.href)){

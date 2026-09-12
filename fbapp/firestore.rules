@@ -4,7 +4,7 @@ service cloud.firestore {
 
     function isAdmin() {
       return request.auth != null &&
-        request.auth.token.email in ['matidiazlife@gmail.com', 'matidiazlife.1@gmail.com'];
+        request.auth.token.email in ['matidiazlife.1@gmail.com'];
     }
 
     // Cada cliente solo puede leer/escribir su propio documento de respuestas.
