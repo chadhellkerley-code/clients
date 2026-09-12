@@ -1,0 +1,6 @@
+{
+  "outputDirectory": "fbapp/public",
+  "rewrites": [
+    { "source": "/admin", "destination": "/admin.html" }
+  ]
+}
