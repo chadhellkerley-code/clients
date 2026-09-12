@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Admin — Diagnóstico</title>
+<style>
+  :root{
+    --bg:#0c0b09; --bg-raised:#161310; --card:#18150f; --line:#2c2820;
+    --mustard:#e3b323; --mustard-dim:#b8901d; --mustard-soft:#f0c94f;
+    --text:#efe8d8; --muted:#9c9382; --err:#e07a63;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0; background:var(--bg); color:var(--text); font-family:-apple-system,"Inter","Helvetica Neue",Arial,sans-serif;}
+  .serif-em{font-family:"Iowan Old Style","Palatino Linotype",Georgia,serif; font-style:italic; color:var(--mustard-soft);}
+  .topbar{display:flex; align-items:center; justify-content:space-between; padding:20px 40px; border-bottom:1px solid var(--line); background:var(--bg-raised);}
+  .brand-eyebrow{font-size:11.5px; letter-spacing:.08em; color:var(--muted); text-transform:uppercase;}
+  .brand-title{font-family:"Iowan Old Style","Palatino Linotype",Georgia,serif; font-style:italic; font-size:20px; color:var(--mustard-soft); margin:0;}
+  .topbar-btn{background:none; border:1px solid var(--line); color:var(--muted); padding:8px 14px; font-size:13px; border-radius:5px; cursor:pointer; font-family:inherit;}
+  .topbar-btn:hover{border-color:var(--mustard-dim); color:var(--mustard-soft);}
+  main{max-width:960px; margin:0 auto; padding:40px 32px 100px;}
+  .center-screen{min-height:80vh; display:flex; align-items:center; justify-content:center; padding:40px 20px;}
+  .auth-box{max-width:420px; width:100%;}
+  .auth-title{font-size:24px; margin:0 0 14px;}
+  .auth-copy{font-size:14.5px; color:var(--muted); line-height:1.6; margin:0 0 22px;}
+  input[type=email]{width:100%; border:1px solid var(--line); border-radius:6px; background:var(--card); color:var(--text); padding:13px 14px; font-size:15px; font-family:inherit; margin-bottom:12px;}
+  .primary-btn{background:var(--mustard); color:#1a1509; border:none; padding:13px 22px; border-radius:6px; font-size:15px; font-weight:600; cursor:pointer; font-family:inherit; width:100%;}
+  .primary-btn:hover:not(:disabled){background:var(--mustard-soft);}
+  .primary-btn:disabled{opacity:.4;}
+  .auth-error{color:var(--err); font-size:13.5px; margin-top:10px;}
+
+  table.clients{width:100%; border-collapse:collapse; margin-top:20px;}
+  table.clients th{text-align:left; font-size:12px; letter-spacing:.03em; text-transform:uppercase; color:var(--muted); padding:10px 12px; border-bottom:1px solid var(--line);}
+  table.clients td{padding:12px; border-bottom:1px solid var(--line); font-size:14.5px; vertical-align:middle;}
+  table.clients tr:hover td{background:var(--card);}
+  .progress-pill{display:inline-block; background:var(--card); border:1px solid var(--line); border-radius:20px; padding:4px 10px; font-size:12.5px; color:var(--mustard-soft);}
+  .view-link{color:var(--mustard-soft); text-decoration:underline; cursor:pointer; text-underline-offset:3px; background:none; border:none; font-family:inherit; font-size:14px; padding:0;}
+  .empty-state{color:var(--muted); font-size:14.5px; margin-top:30px;}
+
+  .detail-back{margin-bottom:20px;}
+  .summary h2{font-size:19px; margin:26px 0 10px; border-bottom:1px solid var(--line); padding-bottom:6px; color:var(--mustard-soft); font-family:"Iowan Old Style","Palatino Linotype",Georgia,serif; font-style:italic;}
+  .summary h2:first-child{margin-top:0;}
+  .summary .qa{margin-bottom:12px;}
+  .summary .qa .qq{font-size:13.5px; color:var(--muted); margin-bottom:2px;}
+  .summary .qa .aa{font-size:15px; white-space:pre-wrap; line-height:1.5;}
+  .summary .qa .aa.empty{color:#6b6455; font-style:italic;}
+  .summary table.dtable{width:100%; border-collapse:collapse; margin:6px 0 14px;}
+  .summary table.dtable th{font-size:11.5px; text-align:left; color:var(--muted); border-bottom:1px solid var(--line); padding:4px 6px;}
+  .summary table.dtable td{font-size:13.5px; padding:5px 6px; border-bottom:1px solid var(--line); vertical-align:top;}
+</style>
+</head>
+<body>
+<div id="centerScreen" class="center-screen" style="display:none;"></div>
+<header class="topbar" id="topbar" style="display:none;">
+  <div>
+    <div class="brand-eyebrow">Panel de administrador</div>
+    <h1 class="brand-title">Clientes</h1>
+  </div>
+  <button class="topbar-btn" id="logoutBtn">Salir</button>
+</header>
+<main id="main" style="display:none;"></main>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
+import {
+  getAuth, sendSignInLinkToEmail, isSignInWithEmailLink, signInWithEmailLink,
+  onAuthStateChanged, signOut
+} from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
+import {
+  getFirestore, collection, getDocs
+} from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyAQd7HD95jcThunXQPaaEraj1mzC-lFc1k",
+  authDomain: "clientes-content.firebaseapp.com",
+  projectId: "clientes-content",
+  storageBucket: "clientes-content.firebasestorage.app",
+  messagingSenderId: "815444323523",
+  appId: "1:815444323523:web:cf1c729b0b4288f56f8676"
+};
+const fbApp = initializeApp(firebaseConfig);
+const auth = getAuth(fbApp);
+const db = getFirestore(fbApp);
+
+const ADMIN_EMAILS = ["matidiazlife@gmail.com"];
+const EMAIL_STORAGE_KEY = "admin_pending_email";
+
+const SECTION_TITLES = [
+  "Visión y objetivo","Situación actual del negocio","Oferta actual","Economía y capacidad",
+  "Clientes","Problemas y ventas","Adquisición actual","Entrega, retención y limitaciones"
+];
+const TOTAL_QUESTIONS = 37;
+
+// Copia liviana de las preguntas, solo para mostrar el detalle (sin lógica de edición).
+const SECTIONS = [
+  { title:"Visión y objetivo", questions:[
+    {id:"q1",text:"¿Por qué decidiste construir este negocio y qué querés conseguir con él?"},
+    {id:"q2",text:"Si este negocio funciona como querés, ¿cómo debería verse dentro de 1–3 años?"},
+    {id:"q3",text:"¿Cuánto querés facturar por mes y cuánto querés ganar realmente por mes?"},
+    {id:"q4",text:"¿Cuántas horas por semana querés dedicarle al negocio?"},
+    {id:"q5",text:"¿Qué cosas NO querés que formen parte de tu negocio aunque te permitan ganar más dinero?"} ]},
+  { title:"Situación actual del negocio", questions:[
+    {id:"q6",text:"¿Qué vendés actualmente y a quién se lo vendés?"},
+    {id:"q7",text:"¿Cuánto cuesta actualmente lo que vendés?"},
+    {id:"q8",text:"¿Cuánto facturaste aproximadamente en cada uno de los últimos 3 meses?"},
+    {id:"q9",text:"¿Cuántos clientes nuevos conseguiste en cada uno de esos meses?"},
+    {id:"q10",text:"¿De dónde llegaron esos clientes?"} ]},
+  { title:"Oferta actual", questions:[
+    {id:"q11",text:"Explicá exactamente qué recibe una persona cuando compra tu oferta."},
+    {id:"q12",text:"¿Qué resultado prometés o buscás conseguir para el cliente?"},
+    {id:"q13",text:"¿Cuánto tiempo tarda normalmente un cliente en completar el proceso?"},
+    {id:"q14",text:"¿Qué tiene que hacer el cliente para conseguir ese resultado?"},
+    {id:"q15",text:"¿Qué parte de la entrega depende obligatoriamente de vos?"},
+    {id:"q16",text:"¿Qué parte de la entrega podría hacer otra persona, automatizarse o reutilizarse?"} ]},
+  { title:"Economía y capacidad", questions:[
+    {id:"q17",text:"¿Cuánto te queda realmente de cada venta después de los costes de entrega?"},
+    {id:"q18",text:"¿Cuántas horas tuyas requiere entregar una venta completa?"},
+    {id:"q19",text:"¿Cuántos clientes podrías atender actualmente sin que la calidad empeore?"},
+    {id:"q20",text:"¿Cuántas horas por semana estás trabajando actualmente y en qué se te van?"} ]},
+  { title:"Clientes", questions:[
+    {id:"q21",text:"Últimos 5–10 clientes", table:true, cols:[{key:"cliente",label:"Cliente"},{key:"compro",label:"Qué compró"},{key:"precio",label:"Precio"},{key:"llego",label:"Cómo llegó"},{key:"problema",label:"Problema"},{key:"resultado",label:"Resultado"}]},
+    {id:"q22",text:"¿Qué tienen en común los clientes que mejores resultados tuvieron con vos?"},
+    {id:"q23",text:"¿Qué tienen en común los clientes que más disfrutaste trabajar?"},
+    {id:"q24",text:"¿Qué clientes NO querés volver a atraer? ¿Por qué?"} ]},
+  { title:"Problemas y ventas", questions:[
+    {id:"q25",text:"¿Qué preguntas, objeciones o problemas se repiten antes de que alguien te compre?"},
+    {id:"q26",text:"¿Por qué creés que las personas que NO compran terminan no comprando?"},
+    {id:"q27",text:"Grabaciones, notas o registros de llamadas de venta (últimas 5–10)."} ]},
+  { title:"Adquisición actual", questions:[
+    {id:"q28",text:"¿Cómo conseguís actualmente personas interesadas en tu negocio?"},
+    {id:"q29",text:"¿Cuántas oportunidades/mensajes/leads recibiste en los últimos 30 días?"},
+    {id:"q30",text:"Embudo: respondieron / calificados / agendaron / asistieron / compraron.", table:true, cols:[{key:"etapa",label:"Etapa"},{key:"cantidad",label:"Cantidad"}]},
+    {id:"q31",text:"Canales probados en 12 meses y su desempeño.", table:true, cols:[{key:"canal",label:"Canal"},{key:"oportunidades",label:"Oportunidades"},{key:"calificados",label:"Calificados"},{key:"llamadas",label:"Llamadas"},{key:"ventas",label:"Ventas"}]},
+    {id:"q32",text:"¿Qué estás haciendo actualmente para generar contenido?"} ]},
+  { title:"Entrega, retención y limitaciones", questions:[
+    {id:"q33",text:"¿Qué suele pasar después de que alguien compra?"},
+    {id:"q34",text:"¿En qué partes de la entrega suelen aparecer problemas?"},
+    {id:"q35",text:"¿Qué hace que un cliente consiga buenos o malos resultados?"},
+    {id:"q36",text:"¿Los clientes suelen continuar, renovar, comprar otra cosa o recomendarte?"},
+    {id:"q37",text:"¿Qué parte de tu negocio sentís que hoy más te limita para crecer?"} ]},
+];
+
+const centerScreen = document.getElementById("centerScreen");
+const topbar = document.getElementById("topbar");
+const main = document.getElementById("main");
+
+function renderCentered(html){
+  main.style.display="none"; topbar.style.display="none";
+  centerScreen.style.display="flex"; centerScreen.innerHTML = html;
+}
+
+function renderLogin(errorMsg){
+  renderCentered(`
+    <div class="auth-box">
+      <div class="brand-eyebrow">Panel de administrador</div>
+      <h1 class="auth-title">Ingresá tu email</h1>
+      <p class="auth-copy">Solo el email autorizado puede entrar acá.</p>
+      <input type="email" id="emailInput" placeholder="tu@email.com">
+      <button class="primary-btn" id="sendBtn">Enviarme el link de acceso</button>
+      ${errorMsg?`<div class="auth-error">${errorMsg}</div>`:""}
+    </div>
+  `);
+  document.getElementById("sendBtn").onclick = async ()=>{
+    const email = document.getElementById("emailInput").value.trim();
+    if(!email.includes("@")){ renderLogin("Escribí un email válido."); return; }
+    if(!ADMIN_EMAILS.includes(email.toLowerCase())){ renderLogin("Ese email no tiene acceso de administrador."); return; }
+    try{
+      await sendSignInLinkToEmail(auth, email, { url: window.location.href, handleCodeInApp:true });
+      window.localStorage.setItem(EMAIL_STORAGE_KEY, email);
+      renderCentered(`<div class="auth-box"><div class="brand-eyebrow">Revisá tu email</div><h1 class="auth-title">Te mandamos un link</h1><p class="auth-copy">Abrilo desde este mismo navegador.</p></div>`);
+    }catch(e){ console.error(e); renderLogin("No pudimos enviar el link, probá de nuevo."); }
+  };
+}
+
+function renderDenied(email){
+  renderCentered(`
+    <div class="auth-box">
+      <h1 class="auth-title">Acceso denegado</h1>
+      <p class="auth-copy">El email <span class="serif-em">${email}</span> no está autorizado como administrador.</p>
+      <button class="primary-btn" id="logoutDenied">Salir</button>
+    </div>
+  `);
+  document.getElementById("logoutDenied").onclick = ()=> signOut(auth);
+}
+
+function isAnswered(v, table){
+  if(!v) return false;
+  if(table) return Array.isArray(v) && v.some(r=>Object.values(r).some(c=>(c||"").trim()!==""));
+  return typeof v==="string" && v.trim()!=="";
+}
+
+function countAnswered(answers){
+  let n=0;
+  SECTIONS.forEach(s=>s.questions.forEach(q=>{ if(isAnswered(answers[q.id], q.table)) n++; }));
+  return n;
+}
+
+let ALL_CLIENTS = [];
+
+async function loadClients(){
+  main.innerHTML = `<p style="color:var(--muted)">Cargando clientes…</p>`;
+  const snap = await getDocs(collection(db, "respuestas"));
+  ALL_CLIENTS = [];
+  snap.forEach(d=> ALL_CLIENTS.push({ id:d.id, ...d.data() }));
+  renderClientList();
+}
+
+function renderClientList(){
+  if(ALL_CLIENTS.length === 0){
+    main.innerHTML = `<p class="empty-state">Todavía no entró ningún cliente.</p>`;
+    return;
+  }
+  const rows = ALL_CLIENTS.map(c=>{
+    const answered = countAnswered(c.answers || {});
+    return `<tr>
+      <td>${c.email || "(sin email)"}</td>
+      <td><span class="progress-pill">${answered} / ${TOTAL_QUESTIONS}</span></td>
+      <td>${c.viewMode === "summary" ? "Completado" : (c.viewMode === "form" ? "En curso" : "Sin empezar")}</td>
+      <td><button class="view-link" data-id="${c.id}">Ver diagnóstico</button></td>
+    </tr>`;
+  }).join("");
+  main.innerHTML = `
+    <table class="clients">
+      <tr><th>Email</th><th>Progreso</th><th>Estado</th><th></th></tr>
+      ${rows}
+    </table>
+  `;
+  main.querySelectorAll(".view-link").forEach(btn=>{
+    btn.onclick = ()=> renderClientDetail(btn.dataset.id);
+  });
+}
+
+function renderClientDetail(id){
+  const client = ALL_CLIENTS.find(c=>c.id===id);
+  const answers = client.answers || {};
+  let html = `<button class="topbar-btn detail-back" id="backBtn">← Volver a la lista</button>
+    <h1 class="brand-title" style="font-size:24px; margin-bottom:4px;">${client.email}</h1>
+    <div class="summary">`;
+  SECTIONS.forEach(s=>{
+    html += `<h2>${s.title}</h2>`;
+    s.questions.forEach(q=>{
+      html += `<div class="qa"><div class="qq">${q.text}</div>`;
+      if(q.table){
+        const rows = (answers[q.id]||[]).filter(r=>Object.values(r).some(v=>(v||"").trim()!==""));
+        if(rows.length===0){ html += `<div class="aa empty">Sin datos.</div>`; }
+        else{
+          html += `<table class="dtable"><tr>${q.cols.map(c=>`<th>${c.label}</th>`).join("")}</tr>`;
+          rows.forEach(r=>{ html += `<tr>${q.cols.map(c=>`<td>${r[c.key]||""}</td>`).join("")}</tr>`; });
+          html += `</table>`;
+        }
+      }else{
+        const val = answers[q.id];
+        html += `<div class="aa ${val && val.trim() ? "" : "empty"}">${val && val.trim() ? val : "Sin responder."}</div>`;
+      }
+      html += `</div>`;
+    });
+  });
+  html += `</div>`;
+  main.innerHTML = html;
+  document.getElementById("backBtn").onclick = renderClientList;
+}
+
+document.getElementById("logoutBtn").onclick = ()=> signOut(auth);
+
+onAuthStateChanged(auth, async (user)=>{
+  if(user){
+    if(!ADMIN_EMAILS.includes((user.email||"").toLowerCase())){
+      renderDenied(user.email); return;
+    }
+    topbar.style.display="flex"; centerScreen.style.display="none"; main.style.display="block";
+    await loadClients();
+  }else{
+    if(isSignInWithEmailLink(auth, window.location.href)){
+      let email = window.localStorage.getItem(EMAIL_STORAGE_KEY);
+      if(!email) email = window.prompt("Confirmá tu email para completar el ingreso:");
+      try{
+        await signInWithEmailLink(auth, email, window.location.href);
+        window.localStorage.removeItem(EMAIL_STORAGE_KEY);
+        window.history.replaceState({}, document.title, window.location.pathname);
+      }catch(e){ console.error(e); renderLogin("El link no es válido o ya expiró."); }
+    }else{
+      renderLogin();
+    }
+  }
+});
+</script>
+</body>
+</html>

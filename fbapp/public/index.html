@@ -1,0 +1,760 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Diagnóstico de Negocio</title>
+<style>
+  :root{
+    --bg:#0c0b09;
+    --bg-raised:#161310;
+    --card:#18150f;
+    --line:#2c2820;
+    --mustard:#e3b323;
+    --mustard-dim:#b8901d;
+    --mustard-soft:#f0c94f;
+    --text:#efe8d8;
+    --muted:#9c9382;
+    --err:#e07a63;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; background:var(--bg); color:var(--text);
+    font-family:-apple-system,"Inter","Helvetica Neue",Arial,sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  .serif-em{
+    font-family:"Iowan Old Style","Palatino Linotype",Georgia,serif;
+    font-style:italic; color:var(--mustard-soft);
+  }
+  .app{display:flex; flex-direction:column; min-height:100vh;}
+
+  .topbar{
+    display:flex; align-items:center; justify-content:space-between;
+    padding:20px 40px; border-bottom:1px solid var(--line);
+    background:var(--bg-raised); position:sticky; top:0; z-index:20;
+    gap:24px; flex-wrap:wrap;
+  }
+  .brand{display:flex; flex-direction:column; gap:2px;}
+  .brand-eyebrow{font-size:11.5px; letter-spacing:.08em; color:var(--muted); text-transform:uppercase;}
+  .brand-title{
+    font-family:"Iowan Old Style","Palatino Linotype",Georgia,serif;
+    font-style:italic; font-size:20px; color:var(--mustard-soft); margin:0;
+  }
+  .topbar-progress{flex:1; max-width:360px; min-width:180px;}
+  .progress-track{height:5px; background:var(--line); border-radius:3px; overflow:hidden;}
+  .progress-fill{height:100%; background:var(--mustard); width:0%; transition:width .3s ease;}
+  .progress-label{font-size:11.5px; color:var(--muted); margin-top:6px;}
+  .topbar-actions{display:flex; gap:8px; flex-wrap:wrap; align-items:center;}
+  .topbar-btn{
+    background:none; border:1px solid var(--line); color:var(--muted);
+    padding:8px 14px; font-size:13px; border-radius:5px; cursor:pointer; font-family:inherit;
+  }
+  .topbar-btn:hover{border-color:var(--mustard-dim); color:var(--mustard-soft);}
+  .topbar-email{font-size:12.5px; color:var(--muted);}
+
+  main{flex:1; padding:44px 56px 100px; max-width:820px; width:100%; margin:0 auto;}
+  .center-screen{
+    flex:1; display:flex; align-items:center; justify-content:center; padding:40px 20px;
+  }
+  .auth-box{max-width:420px; width:100%;}
+  .auth-eyebrow{color:var(--mustard); font-size:12.5px; letter-spacing:.06em; text-transform:uppercase; margin:0 0 10px;}
+  .auth-title{font-size:26px; margin:0 0 14px; line-height:1.25;}
+  .auth-copy{font-size:14.5px; color:var(--muted); line-height:1.6; margin:0 0 22px;}
+  input[type=email]{
+    width:100%; border:1px solid var(--line); border-radius:6px; background:var(--card);
+    color:var(--text); padding:13px 14px; font-size:15px; font-family:inherit; margin-bottom:12px;
+  }
+  input[type=email]:focus{outline:none; border-color:var(--mustard-dim);}
+  .primary-btn{
+    background:var(--mustard); color:#1a1509; border:none; padding:13px 22px;
+    border-radius:6px; font-size:15px; font-weight:600; cursor:pointer; font-family:inherit; width:100%;
+  }
+  .primary-btn:hover:not(:disabled){background:var(--mustard-soft);}
+  .primary-btn:disabled{opacity:.4; cursor:default;}
+  .auth-error{color:var(--err); font-size:13.5px; margin-top:10px;}
+  .auth-note{font-size:12.5px; color:var(--muted); margin-top:16px; line-height:1.5;}
+
+  .section-eyebrow{color:var(--mustard); font-size:12.5px; letter-spacing:.06em; text-transform:uppercase; margin:0 0 8px;}
+  h1.section-title{font-size:30px; margin:0 0 8px; font-weight:600; color:var(--text);}
+  .section-intro{
+    font-family:"Iowan Old Style","Palatino Linotype",Georgia,serif; font-style:italic;
+    color:var(--mustard-soft); font-size:16.5px; max-width:640px; margin:0 0 32px; line-height:1.55; opacity:.92;
+  }
+  .locked-banner{
+    background:var(--card); border:1px solid var(--line); border-left:3px solid var(--mustard-dim);
+    padding:12px 16px; font-size:13.5px; color:var(--muted); border-radius:6px; margin-bottom:22px;
+  }
+
+  .q{background:var(--card); border:1px solid var(--line); border-radius:8px; padding:22px 24px; margin-bottom:16px;}
+  .q-num{font-size:11.5px; color:var(--mustard); letter-spacing:.05em; margin-bottom:8px;}
+  .q-text{font-size:16px; margin:0 0 4px; line-height:1.45; color:var(--text);}
+  .q-hint{font-family:"Iowan Old Style","Palatino Linotype",Georgia,serif; font-style:italic; font-size:13.5px; color:var(--muted); margin:0 0 10px;}
+  .q-locked-answer{font-size:14.5px; color:var(--text); white-space:pre-wrap; line-height:1.5; padding-top:4px;}
+  .q-locked-answer.empty{color:#6b6455; font-style:italic;}
+  textarea{
+    width:100%; border:1px solid var(--line); border-radius:5px; background:var(--bg); padding:11px 13px;
+    font-family:inherit; font-size:14.5px; color:var(--text); resize:vertical; min-height:60px;
+  }
+  textarea:focus{outline:none; border-color:var(--mustard-dim); background:#100e0b;}
+  .q.invalid{border-color:#b0473a;}
+  .q-error{font-size:12.5px; color:var(--err); margin-top:6px; display:none;}
+  .q.invalid .q-error{display:block;}
+
+  table.grid{width:100%; border-collapse:collapse; margin-top:4px;}
+  table.grid th{text-align:left; font-size:11.5px; color:var(--muted); font-weight:600; padding:4px 8px; border-bottom:1px solid var(--line);}
+  table.grid td{padding:3px 4px; vertical-align:top;}
+  table.grid input, table.grid textarea{
+    width:100%; border:1px solid var(--line); border-radius:4px; background:var(--bg); padding:7px 9px;
+    font-size:13.5px; font-family:inherit; color:var(--text);
+  }
+  table.grid input:focus, table.grid textarea:focus{outline:none; border-color:var(--mustard-dim);}
+  .row-actions{display:flex; justify-content:flex-end; margin-top:6px;}
+  .add-row, .rm-row{background:none; border:1px dashed var(--line); color:var(--muted); font-size:12.5px; padding:5px 10px; border-radius:4px; cursor:pointer; font-family:inherit;}
+  .add-row:hover{border-color:var(--mustard-dim); color:var(--mustard-soft);}
+  .rm-row{border:none; color:var(--err); padding:6px 8px;}
+
+  .nav-buttons{display:flex; justify-content:space-between; margin-top:36px;}
+  .navbtn{background:var(--mustard); color:#1a1509; border:none; padding:12px 22px; border-radius:6px; font-size:14px; cursor:pointer; font-family:inherit; font-weight:600;}
+  .navbtn:hover{background:var(--mustard-soft);}
+  .navbtn.ghost{background:none; color:var(--muted); border:1px solid var(--line); font-weight:400;}
+  .navbtn.ghost:hover{color:var(--text); border-color:var(--mustard-dim);}
+  .navbtn:disabled{opacity:.35; cursor:default;}
+
+  .toast{
+    position:fixed; bottom:22px; right:26px; background:var(--mustard); color:#1a1509; padding:10px 18px;
+    border-radius:6px; font-size:13.5px; font-weight:600; opacity:0; transform:translateY(8px);
+    transition:all .25s ease; pointer-events:none;
+  }
+  .toast.show{opacity:1; transform:translateY(0);}
+
+  .intro-wrap{max-width:640px;}
+  .intro-eyebrow{color:var(--mustard); font-size:12.5px; letter-spacing:.06em; text-transform:uppercase; margin:0 0 10px;}
+  .intro-title{font-size:32px; margin:0 0 18px; font-weight:600; line-height:1.2; color:var(--text);}
+  .audio-card{background:var(--card); border:1px solid var(--line); border-radius:10px; padding:24px 26px; margin-bottom:22px;}
+  .audio-label{font-size:12.5px; color:var(--muted); margin-bottom:12px;}
+  audio{width:100%; display:block; filter:invert(0.9) hue-rotate(180deg);}
+  .audio-status{font-size:13px; color:var(--muted); margin-top:10px;}
+  .audio-status.ok{color:var(--mustard);}
+  .transcript-toggle{background:none; border:none; color:var(--mustard-soft); font-size:13.5px; cursor:pointer; padding:0; font-family:inherit; text-decoration:underline; text-underline-offset:3px;}
+  .transcript-block{margin-top:16px; padding-top:16px; border-top:1px solid var(--line); font-family:"Iowan Old Style","Palatino Linotype",Georgia,serif; font-style:italic; font-size:15.5px; line-height:1.7; color:var(--text); max-height:260px; overflow-y:auto;}
+  .transcript-block p{margin:0 0 14px;}
+  .transcript-block p:last-child{margin-bottom:0;}
+  .transcript-end-marker{height:1px;}
+  .unlock-status{font-size:13px; color:var(--muted); margin:18px 0 4px; display:flex; align-items:center; gap:8px;}
+  .unlock-dot{width:8px; height:8px; border-radius:50%; background:var(--line); flex:none;}
+  .unlock-dot.on{background:var(--mustard);}
+  .continue-btn{background:var(--mustard); color:#1a1509; border:none; padding:13px 24px; border-radius:7px; font-size:15px; font-weight:600; cursor:pointer; font-family:inherit; margin-top:6px;}
+  .continue-btn:hover:not(:disabled){background:var(--mustard-soft);}
+  .continue-btn:disabled{opacity:.3; cursor:not-allowed;}
+  .continue-hint{font-size:12.5px; color:var(--muted); margin-top:8px;}
+
+  .summary h2{font-size:20px; margin:26px 0 10px; border-bottom:1px solid var(--line); padding-bottom:6px; color:var(--mustard-soft); font-family:"Iowan Old Style","Palatino Linotype",Georgia,serif; font-style:italic;}
+  .summary h2:first-child{margin-top:0;}
+  .summary .qa{margin-bottom:12px;}
+  .summary .qa .qq{font-size:13.5px; color:var(--muted); margin-bottom:2px;}
+  .summary .qa .aa{font-size:15px; white-space:pre-wrap; line-height:1.5;}
+  .summary .qa .aa.empty{color:#6b6455; font-style:italic;}
+  .summary table{width:100%; border-collapse:collapse; margin:6px 0 14px;}
+  .summary table th{font-size:11.5px; text-align:left; color:var(--muted); border-bottom:1px solid var(--line); padding:4px 6px;}
+  .summary table td{font-size:13.5px; padding:5px 6px; border-bottom:1px solid var(--line); vertical-align:top;}
+
+  @media (max-width:820px){
+    .topbar{padding:16px 20px; flex-direction:column; align-items:flex-start;}
+    .topbar-progress{max-width:none; width:100%;}
+    main{padding:28px 20px 80px;}
+  }
+</style>
+</head>
+<body>
+<div class="app" id="app">
+  <div class="center-screen" id="centerScreen" style="display:none;"></div>
+  <header class="topbar" id="topbar" style="display:none;">
+    <div class="brand">
+      <div class="brand-eyebrow">Sistema de diagnóstico</div>
+      <h1 class="brand-title">Antes de la llamada</h1>
+    </div>
+    <div class="topbar-progress">
+      <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+      <div class="progress-label" id="progressLabel">0 de 37 respondidas</div>
+    </div>
+    <div class="topbar-actions">
+      <span class="topbar-email" id="topbarEmail"></span>
+      <button class="topbar-btn" id="viewSummaryBtn">Resumen</button>
+      <button class="topbar-btn" id="logoutBtn">Salir</button>
+    </div>
+  </header>
+  <main id="main" style="display:none;"></main>
+</div>
+<div class="toast" id="toast">Guardado</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
+import {
+  getAuth, sendSignInLinkToEmail, isSignInWithEmailLink, signInWithEmailLink,
+  onAuthStateChanged, signOut
+} from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
+import {
+  getFirestore, doc, getDoc, setDoc, updateDoc, serverTimestamp
+} from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyAQd7HD95jcThunXQPaaEraj1mzC-lFc1k",
+  authDomain: "clientes-content.firebaseapp.com",
+  projectId: "clientes-content",
+  storageBucket: "clientes-content.firebasestorage.app",
+  messagingSenderId: "815444323523",
+  appId: "1:815444323523:web:cf1c729b0b4288f56f8676"
+};
+const fbApp = initializeApp(firebaseConfig);
+const auth = getAuth(fbApp);
+const db = getFirestore(fbApp);
+
+const ADMIN_EMAILS = ["matidiazlife@gmail.com"];
+const EMAIL_STORAGE_KEY = "diag_pending_email";
+
+/* ---------------- Datos del diagnóstico ---------------- */
+const SECTIONS = [
+  { key:"vision", title:"Visión y objetivo", intro:"Qué negocio quiere construir y con qué condiciones.",
+    questions:[
+      {id:"q1", text:"¿Por qué decidiste construir este negocio y qué querés conseguir con él?", hint:"Motivo y expectativa."},
+      {id:"q2", text:"Si este negocio funciona como querés, ¿cómo debería verse dentro de 1–3 años?"},
+      {id:"q3", text:"¿Cuánto querés facturar por mes y cuánto querés ganar realmente por mes?"},
+      {id:"q4", text:"¿Cuántas horas por semana querés dedicarle al negocio?"},
+      {id:"q5", text:"¿Qué cosas NO querés que formen parte de tu negocio aunque te permitan ganar más dinero?", hint:"Esto define restricciones reales de diseño de oferta."},
+    ]},
+  { key:"actual", title:"Situación actual del negocio", intro:"Una fotografía honesta de dónde está hoy.",
+    questions:[
+      {id:"q6", text:"¿Qué vendés actualmente y a quién se lo vendés?"},
+      {id:"q7", text:"¿Cuánto cuesta actualmente lo que vendés?", hint:"Si hay varias ofertas, indicá cada una."},
+      {id:"q8", text:"¿Cuánto facturaste aproximadamente en cada uno de los últimos 3 meses?"},
+      {id:"q9", text:"¿Cuántos clientes nuevos conseguiste en cada uno de esos meses?"},
+      {id:"q10", text:"¿De dónde llegaron esos clientes?", hint:"Referidos, Instagram, TikTok, anuncios, mensajes, llamadas, contactos personales, etc."},
+    ]},
+  { key:"oferta", title:"Oferta actual", intro:"Qué está vendiendo, exactamente.",
+    questions:[
+      {id:"q11", text:"Explicá exactamente qué recibe una persona cuando compra tu oferta.", hint:"No alcanza con 'coaching': sesiones, duración, soporte, materiales, implementación, etc."},
+      {id:"q12", text:"¿Qué resultado prometés o buscás conseguir para el cliente?"},
+      {id:"q13", text:"¿Cuánto tiempo tarda normalmente un cliente en completar el proceso?"},
+      {id:"q14", text:"¿Qué tiene que hacer el cliente para conseguir ese resultado?"},
+      {id:"q15", text:"¿Qué parte de la entrega depende obligatoriamente de vos?"},
+      {id:"q16", text:"¿Qué parte de la entrega podría hacer otra persona, automatizarse o reutilizarse?"},
+    ]},
+  { key:"economia", title:"Economía y capacidad", intro:"Si el negocio puede llegar matemáticamente a donde quiere.",
+    questions:[
+      {id:"q17", text:"Aproximadamente, ¿cuánto te queda realmente de cada venta después de los costes directamente relacionados con entregar el servicio?", hint:"No hace falta contabilidad perfecta."},
+      {id:"q18", text:"¿Cuántas horas tuyas requiere entregar una venta completa?"},
+      {id:"q19", text:"¿Cuántos clientes podrías atender actualmente sin que la calidad del servicio empeore?"},
+      {id:"q20", text:"¿Cuántas horas por semana estás trabajando actualmente y en qué se te van principalmente?"},
+    ]},
+  { key:"clientes", title:"Clientes", intro:"Evidencia real, no una definición de avatar imaginada.",
+    questions:[
+      {id:"q21", text:"Últimos 5–10 clientes", table:true,
+        cols:[{key:"cliente",label:"Cliente"},{key:"compro",label:"Qué compró"},{key:"precio",label:"Precio"},{key:"llego",label:"Cómo llegó"},{key:"problema",label:"Problema"},{key:"resultado",label:"Resultado"}]},
+      {id:"q22", text:"¿Qué tienen en común los clientes que mejores resultados tuvieron con vos?"},
+      {id:"q23", text:"¿Qué tienen en común los clientes que más disfrutaste trabajar?"},
+      {id:"q24", text:"¿Qué clientes NO querés volver a atraer? ¿Por qué?"},
+    ]},
+  { key:"problemas", title:"Problemas y ventas", intro:"Encontrar los problemas desde datos reales, no desde imaginación.",
+    questions:[
+      {id:"q25", text:"¿Cuáles son las preguntas, objeciones o problemas que más se repiten antes de que alguien te compre?"},
+      {id:"q26", text:"¿Por qué creés que las personas que NO compran terminan no comprando?"},
+      {id:"q27", text:"Si tenés grabaciones, notas o registros de llamadas de venta, compartí las últimas 5–10.", hint:"Podés pegar enlaces o notas clave de cada una."},
+    ]},
+  { key:"adquisicion", title:"Adquisición actual", intro:"Cómo consigue oportunidades hoy.",
+    questions:[
+      {id:"q28", text:"¿Cómo conseguís actualmente personas interesadas en tu negocio?"},
+      {id:"q29", text:"¿Cuántas oportunidades/mensajes/leads recibiste aproximadamente durante los últimos 30 días?"},
+      {id:"q30", text:"De esas personas, ¿cuántas respondieron, estaban calificadas, agendaron, asistieron y compraron?", table:true,
+        cols:[{key:"etapa",label:"Etapa"},{key:"cantidad",label:"Cantidad"}],
+        prefill:["Respondieron","Calificados","Agendaron","Asistieron","Compraron"]},
+      {id:"q31", text:"¿Qué canales o métodos de adquisición probaste durante los últimos 12 meses y cuáles funcionaron mejor/peor?", table:true,
+        cols:[{key:"canal",label:"Canal"},{key:"oportunidades",label:"Oportunidades"},{key:"calificados",label:"Calificados"},{key:"llamadas",label:"Llamadas"},{key:"ventas",label:"Ventas"}]},
+      {id:"q32", text:"¿Qué estás haciendo actualmente para generar contenido?", hint:"Cuántas piezas, en qué plataformas, cuántas cuentas, frecuencia, formato."},
+    ]},
+  { key:"entrega", title:"Entrega, retención y limitaciones", intro:"Qué pasa después de vender.",
+    questions:[
+      {id:"q33", text:"¿Qué suele pasar después de que alguien compra? Describí el proceso desde el pago hasta la finalización."},
+      {id:"q34", text:"¿En qué partes de la entrega suelen aparecer problemas?"},
+      {id:"q35", text:"¿Qué hace que un cliente consiga buenos resultados y qué hace que uno tenga malos resultados?"},
+      {id:"q36", text:"¿Los clientes suelen continuar, renovar, comprar otra cosa o recomendarte? ¿Qué ocurre normalmente?"},
+      {id:"q37", text:"¿Qué parte de tu negocio sentís que hoy más te limita para crecer?", hint:"Compará esto luego contra tu propio diagnóstico."},
+    ]},
+];
+const TOTAL_QUESTIONS = SECTIONS.reduce((n,s)=>n+s.questions.length,0);
+
+const TRANSCRIPT_PARAGRAPHS = [
+  "Antes de empezar, quiero que entiendas algo. Esta página no está hecha para hacerte perder 20 minutos respondiendo preguntas que después nadie va a mirar. Todo lo que vas a responder acá tiene un motivo.",
+  "Necesito entender dónde está tu negocio hoy, qué estás vendiendo, quién te compra, cómo conseguís clientes, cuánto te cuesta entregar lo que vendés, cuánto querés conseguir y qué tipo de negocio querés construir.",
+  "Porque en la llamada no quiero pasar una hora preguntándote cosas que podrías responder ahora. Quiero llegar conociendo tu situación y usar ese tiempo para conectar los puntos.",
+  "No intentes responder lo que creés que yo quiero leer. Si no sabés cuánto convertís, poné que no lo sabés. Si no sabés cuánto te cuesta entregar tu servicio, poné que no lo sabés. Eso también es información.",
+  "Cuanto mejor respondas esto, más precisa va a ser la sesión. La idea es que cuando terminemos la llamada entiendas qué está pasando con tu negocio, qué necesitás cambiar, qué vas a vender, cómo lo vas a entregar y qué vas a hacer durante los próximos 90 días."
+];
+const READING_WPM = 130;
+const TRANSCRIPT_WORD_COUNT = TRANSCRIPT_PARAGRAPHS.join(" ").split(/\s+/).filter(Boolean).length;
+const MIN_READ_MS = Math.round((TRANSCRIPT_WORD_COUNT / READING_WPM) * 60 * 1000);
+const AUDIO_URL = "./assets/intro.mp3";
+
+/* ---------------- Estado ---------------- */
+let currentUser = null;
+let docRef = null;
+let state = {
+  viewMode: "loading", // loading | login | check-email | blocked | intro | form | summary
+  currentSection: 0,
+  furthestSection: 0,
+  answers: {},
+};
+let unlockState = { audioDone:false, readDone:false };
+let transcriptOpenedAt = null, transcriptTimerId = null, transcriptScrolledToEnd = false;
+let saveTimer = null;
+
+const centerScreen = document.getElementById("centerScreen");
+const topbar = document.getElementById("topbar");
+const main = document.getElementById("main");
+
+function showToast(msg){
+  const t = document.getElementById("toast");
+  t.textContent = msg; t.classList.add("show");
+  setTimeout(()=>t.classList.remove("show"), 1400);
+}
+
+/* ---------------- Fingerprint ---------------- */
+async function getFingerprint(){
+  const raw = [
+    navigator.userAgent, navigator.language,
+    screen.width+"x"+screen.height,
+    Intl.DateTimeFormat().resolvedOptions().timeZone,
+    navigator.hardwareConcurrency, navigator.platform
+  ].join("|");
+  const enc = new TextEncoder().encode(raw);
+  const buf = await crypto.subtle.digest("SHA-256", enc);
+  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,"0")).join("");
+}
+
+/* ---------------- Auth screens ---------------- */
+function renderCentered(html){
+  main.style.display = "none";
+  topbar.style.display = "none";
+  centerScreen.style.display = "flex";
+  centerScreen.innerHTML = html;
+}
+
+function renderLogin(errorMsg){
+  renderCentered(`
+    <div class="auth-box">
+      <div class="auth-eyebrow">Antes de empezar</div>
+      <h1 class="auth-title">Ingresá tu email para acceder al diagnóstico</h1>
+      <p class="auth-copy">Te vamos a mandar un link para entrar, sin contraseña.</p>
+      <input type="email" id="emailInput" placeholder="tu@email.com" autocomplete="email">
+      <button class="primary-btn" id="sendLinkBtn">Enviarme el link de acceso</button>
+      ${errorMsg ? `<div class="auth-error">${errorMsg}</div>` : ""}
+    </div>
+  `);
+  document.getElementById("sendLinkBtn").onclick = async ()=>{
+    const email = document.getElementById("emailInput").value.trim();
+    if(!email || !email.includes("@")){ renderLogin("Escribí un email válido."); return; }
+    const btn = document.getElementById("sendLinkBtn");
+    btn.disabled = true; btn.textContent = "Enviando…";
+    try{
+      const actionCodeSettings = { url: window.location.href, handleCodeInApp: true };
+      await sendSignInLinkToEmail(auth, email, actionCodeSettings);
+      window.localStorage.setItem(EMAIL_STORAGE_KEY, email);
+      renderCheckEmail(email);
+    }catch(e){
+      console.error(e);
+      renderLogin("No pudimos enviar el link. Probá de nuevo en un momento.");
+    }
+  };
+}
+
+function renderCheckEmail(email){
+  renderCentered(`
+    <div class="auth-box">
+      <div class="auth-eyebrow">Revisá tu bandeja de entrada</div>
+      <h1 class="auth-title">Te mandamos un link a <span class="serif-em">${email}</span></h1>
+      <p class="auth-copy">Abrilo desde este mismo navegador para entrar. Si no lo ves en unos minutos, revisá spam.</p>
+    </div>
+  `);
+}
+
+function renderBlocked(){
+  renderCentered(`
+    <div class="auth-box">
+      <div class="auth-eyebrow">Este navegador ya fue usado</div>
+      <h1 class="auth-title">Ya se inició un diagnóstico desde este dispositivo con otra cuenta</h1>
+      <p class="auth-copy">Si sos vos y ya empezaste antes, entrá con el mismo email que usaste la primera vez. Si creés que es un error, escribile directamente a la persona que te compartió este link.</p>
+      <button class="primary-btn" id="logoutBlockedBtn">Salir e intentar con otro email</button>
+    </div>
+  `);
+  document.getElementById("logoutBlockedBtn").onclick = ()=> signOut(auth);
+}
+
+/* ---------------- Guardado ---------------- */
+function scheduleSave(){
+  if(saveTimer) clearTimeout(saveTimer);
+  saveTimer = setTimeout(async ()=>{
+    try{
+      await updateDoc(docRef, {
+        answers: state.answers,
+        viewMode: state.viewMode,
+        currentSection: state.currentSection,
+        furthestSection: state.furthestSection,
+        updatedAt: serverTimestamp(),
+      });
+      showToast("Guardado");
+    }catch(e){ console.error("No se pudo guardar", e); }
+  }, 500);
+}
+
+function isAnswered(q){
+  const v = state.answers[q.id];
+  if(!v) return false;
+  if(q.table) return Array.isArray(v) && v.some(row=>Object.values(row).some(c=>(c||"").trim()!==""));
+  return typeof v === "string" && v.trim()!=="";
+}
+function countAnsweredInSection(s){ return s.questions.filter(isAnswered).length; }
+function countAnsweredTotal(){ return SECTIONS.reduce((n,s)=>n+countAnsweredInSection(s),0); }
+
+function updateProgress(){
+  const total = countAnsweredTotal();
+  document.getElementById("progressFill").style.width = (total/TOTAL_QUESTIONS*100)+"%";
+  document.getElementById("progressLabel").textContent = `${total} de ${TOTAL_QUESTIONS} respondidas`;
+}
+
+/* ---------------- Intro (audio + transcripción) ---------------- */
+function checkUnlockAndUpdate(){
+  const dotA = document.getElementById("dotAudio"), dotR = document.getElementById("dotRead");
+  const btn = document.getElementById("continueBtn");
+  if(!btn) return;
+  if(dotA) dotA.classList.toggle("on", unlockState.audioDone);
+  if(dotR) dotR.classList.toggle("on", unlockState.readDone);
+  btn.disabled = !(unlockState.audioDone || unlockState.readDone);
+}
+function evaluateReadProgress(){
+  if(unlockState.readDone) return;
+  const elapsed = transcriptOpenedAt ? (Date.now()-transcriptOpenedAt) : 0;
+  if(transcriptScrolledToEnd && elapsed >= MIN_READ_MS){
+    unlockState.readDone = true; checkUnlockAndUpdate();
+    if(transcriptTimerId){ clearInterval(transcriptTimerId); transcriptTimerId = null; }
+  }
+}
+
+function renderIntro(){
+  topbar.style.display = "none";
+  centerScreen.style.display = "none";
+  main.style.display = "block";
+  main.innerHTML = "";
+  const wrap = document.createElement("div");
+  wrap.className = "intro-wrap";
+  wrap.innerHTML = `
+    <div class="intro-eyebrow">Antes de empezar</div>
+    <h1 class="intro-title">Un mensaje corto antes del diagnóstico</h1>
+    <div class="audio-card">
+      <div class="audio-label">Escuchá esto (1:35)</div>
+      <audio controls preload="auto" src="${AUDIO_URL}"></audio>
+      <div class="audio-status" id="audioStatus">Todavía no escuchaste el audio completo.</div>
+      <button class="transcript-toggle" id="transcriptToggle">¿No podés escucharlo ahora? Leé la transcripción</button>
+      <div class="transcript-block" id="transcriptBlock" style="display:none;">
+        ${TRANSCRIPT_PARAGRAPHS.map(p=>`<p>${p}</p>`).join("")}
+        <div class="transcript-end-marker" id="transcriptEndMarker"></div>
+      </div>
+    </div>
+    <div class="unlock-status"><span class="unlock-dot" id="dotAudio"></span> Escuchaste el audio completo</div>
+    <div class="unlock-status"><span class="unlock-dot" id="dotRead"></span> Leíste la transcripción completa</div>
+    <button class="continue-btn" id="continueBtn" disabled>Continuar al diagnóstico →</button>
+    <div class="continue-hint">Escuchá el audio o leé el mensaje completo para continuar.</div>
+  `;
+  main.appendChild(wrap);
+
+  const audioEl = wrap.querySelector("audio");
+  const audioStatus = document.getElementById("audioStatus");
+  const markAudioDone = ()=>{
+    if(unlockState.audioDone) return;
+    unlockState.audioDone = true;
+    audioStatus.textContent = "Audio escuchado. ✓"; audioStatus.classList.add("ok");
+    checkUnlockAndUpdate();
+  };
+  audioEl.addEventListener("timeupdate", ()=>{
+    if(audioEl.duration && audioEl.currentTime/audioEl.duration >= 0.9) markAudioDone();
+  });
+  audioEl.addEventListener("ended", markAudioDone);
+
+  const toggle = document.getElementById("transcriptToggle");
+  const block = document.getElementById("transcriptBlock");
+  const endMarker = document.getElementById("transcriptEndMarker");
+  let observer = null;
+  toggle.onclick = ()=>{
+    const opening = block.style.display === "none";
+    block.style.display = opening ? "block" : "none";
+    toggle.textContent = opening ? "Ocultar transcripción" : "¿No podés escucharlo ahora? Leé la transcripción";
+    if(opening){
+      if(!transcriptOpenedAt) transcriptOpenedAt = Date.now();
+      if(!transcriptTimerId) transcriptTimerId = setInterval(evaluateReadProgress, 1000);
+      if(!observer){
+        observer = new IntersectionObserver((entries)=>{
+          entries.forEach(e=>{ if(e.isIntersecting) transcriptScrolledToEnd = true; });
+          evaluateReadProgress();
+        }, { root: block, threshold: 0.9 });
+        observer.observe(endMarker);
+      }
+    }
+  };
+  document.getElementById("continueBtn").onclick = (e)=>{
+    if(e.target.disabled) return;
+    state.viewMode = "form"; state.currentSection = 0;
+    scheduleSave(); render(); window.scrollTo(0,0);
+  };
+  checkUnlockAndUpdate();
+}
+
+/* ---------------- Tablas y preguntas ---------------- */
+function ensureTableData(q){
+  if(!state.answers[q.id] || !Array.isArray(state.answers[q.id])){
+    state.answers[q.id] = q.prefill
+      ? q.prefill.map(label=>{ const row={}; q.cols.forEach(c=>row[c.key]=""); row[q.cols[0].key]=label; return row; })
+      : [ Object.fromEntries(q.cols.map(c=>[c.key,""])) ];
+  }
+  return state.answers[q.id];
+}
+
+function renderTable(q, locked){
+  const rows = ensureTableData(q);
+  const wrap = document.createElement("div");
+  const table = document.createElement("table");
+  table.className = "grid";
+  const thead = document.createElement("tr");
+  q.cols.forEach(c=>{ const th=document.createElement("th"); th.textContent=c.label; thead.appendChild(th); });
+  thead.appendChild(document.createElement("th"));
+  table.appendChild(thead);
+  rows.forEach((row, ri)=>{
+    const tr = document.createElement("tr");
+    q.cols.forEach(c=>{
+      const td = document.createElement("td");
+      const input = document.createElement("input");
+      input.value = row[c.key] || "";
+      input.disabled = locked;
+      input.oninput = (e)=>{ rows[ri][c.key]=e.target.value; scheduleSave(); updateProgress(); };
+      td.appendChild(input); tr.appendChild(td);
+    });
+    const tdBtn = document.createElement("td");
+    if(rows.length>1 && !q.prefill && !locked){
+      const rm = document.createElement("button");
+      rm.className = "rm-row"; rm.textContent = "✕";
+      rm.onclick = ()=>{ rows.splice(ri,1); scheduleSave(); renderMain(); };
+      tdBtn.appendChild(rm);
+    }
+    tr.appendChild(tdBtn); table.appendChild(tr);
+  });
+  wrap.appendChild(table);
+  if(!q.prefill && !locked){
+    const actions = document.createElement("div");
+    actions.className = "row-actions";
+    const addBtn = document.createElement("button");
+    addBtn.className = "add-row"; addBtn.textContent = "+ agregar fila";
+    addBtn.onclick = ()=>{ rows.push(Object.fromEntries(q.cols.map(c=>[c.key,""]))); scheduleSave(); renderMain(); };
+    actions.appendChild(addBtn); wrap.appendChild(actions);
+  }
+  return wrap;
+}
+
+function renderQuestion(q, locked){
+  const box = document.createElement("div");
+  box.className = "q"; box.id = "box-"+q.id;
+  box.innerHTML = `<div class="q-num">PREGUNTA ${q.id.replace("q","")}</div><p class="q-text">${q.text}</p>${q.hint?`<p class="q-hint">${q.hint}</p>`:""}`;
+  if(q.table){
+    box.appendChild(renderTable(q, locked));
+  }else if(locked){
+    const val = state.answers[q.id];
+    const div = document.createElement("div");
+    div.className = "q-locked-answer" + (val && val.trim() ? "" : " empty");
+    div.textContent = val && val.trim() ? val : "Sin responder.";
+    box.appendChild(div);
+  }else{
+    const ta = document.createElement("textarea");
+    ta.value = state.answers[q.id] || "";
+    ta.placeholder = "Escribí la respuesta acá… si no lo sabés, escribí que no lo sabés.";
+    ta.oninput = (e)=>{
+      state.answers[q.id] = e.target.value;
+      scheduleSave(); updateProgress();
+      if(e.target.value.trim()!=="") box.classList.remove("invalid");
+    };
+    box.appendChild(ta);
+    const err = document.createElement("div");
+    err.className = "q-error";
+    err.textContent = "Esta pregunta necesita una respuesta antes de avanzar — si no lo sabés, escribilo así.";
+    box.appendChild(err);
+  }
+  return box;
+}
+
+function renderFormSection(){
+  main.innerHTML = "";
+  const section = SECTIONS[state.currentSection];
+  const locked = state.currentSection < state.furthestSection;
+  const eyebrow = document.createElement("div");
+  eyebrow.className = "section-eyebrow";
+  eyebrow.textContent = `SECCIÓN ${state.currentSection+1} DE ${SECTIONS.length}`;
+  main.appendChild(eyebrow);
+  const h1 = document.createElement("h1");
+  h1.className = "section-title"; h1.textContent = section.title;
+  main.appendChild(h1);
+  const intro = document.createElement("p");
+  intro.className = "section-intro"; intro.textContent = section.intro;
+  main.appendChild(intro);
+  if(locked){
+    const banner = document.createElement("div");
+    banner.className = "locked-banner";
+    banner.textContent = "Esta sección ya la completaste y quedó guardada. No se puede volver a editar.";
+    main.appendChild(banner);
+  }
+  section.questions.forEach(q=> main.appendChild(renderQuestion(q, locked)));
+
+  const nav = document.createElement("div");
+  nav.className = "nav-buttons";
+  const prevBtn = document.createElement("button");
+  prevBtn.className = "navbtn ghost"; prevBtn.textContent = "← Sección anterior";
+  prevBtn.disabled = state.currentSection === 0;
+  prevBtn.onclick = ()=>{ state.currentSection--; render(); window.scrollTo(0,0); };
+  const nextBtn = document.createElement("button");
+  const isLast = state.currentSection === SECTIONS.length-1;
+  nextBtn.className = "navbtn";
+  nextBtn.textContent = locked ? "Siguiente →" : (isLast ? "Ver resumen completo →" : "Siguiente sección →");
+  nextBtn.onclick = ()=>{
+    if(!locked){
+      const missing = section.questions.filter(q=>!q.table && !isAnswered(q));
+      if(missing.length>0){
+        missing.forEach(q=>{ const b=document.getElementById("box-"+q.id); if(b) b.classList.add("invalid"); });
+        document.getElementById("box-"+missing[0].id)?.scrollIntoView({behavior:"smooth", block:"center"});
+        return;
+      }
+      if(state.currentSection === state.furthestSection && state.furthestSection < SECTIONS.length-1){
+        state.furthestSection++;
+      }
+    }
+    if(isLast){ state.viewMode = "summary"; }
+    else state.currentSection++;
+    scheduleSave(); render(); window.scrollTo(0,0);
+  };
+  nav.appendChild(prevBtn); nav.appendChild(nextBtn);
+  main.appendChild(nav);
+}
+
+function renderSummary(){
+  main.innerHTML = "";
+  main.innerHTML = `<div class="section-eyebrow">RESUMEN</div><h1 class="section-title">Diagnóstico completo</h1><p class="section-intro">Esto es lo que vas a tener enfrente antes de la llamada.</p>`;
+  const wrap = document.createElement("div"); wrap.className = "summary";
+  SECTIONS.forEach(s=>{
+    const h2 = document.createElement("h2"); h2.textContent = s.title; wrap.appendChild(h2);
+    s.questions.forEach(q=>{
+      const qa = document.createElement("div"); qa.className = "qa";
+      qa.innerHTML = `<div class="qq">${q.text}</div>`;
+      if(q.table){
+        const rows = (state.answers[q.id]||[]).filter(r=>Object.values(r).some(v=>(v||"").trim()!==""));
+        if(rows.length===0){
+          qa.innerHTML += `<div class="aa empty">Sin datos aún.</div>`;
+        }else{
+          const table = document.createElement("table");
+          const thead = document.createElement("tr");
+          q.cols.forEach(c=>{ const th=document.createElement("th"); th.textContent=c.label; thead.appendChild(th); });
+          table.appendChild(thead);
+          rows.forEach(r=>{
+            const tr = document.createElement("tr");
+            q.cols.forEach(c=>{ const td=document.createElement("td"); td.textContent=r[c.key]||""; tr.appendChild(td); });
+            table.appendChild(tr);
+          });
+          qa.appendChild(table);
+        }
+      }else{
+        const val = state.answers[q.id];
+        qa.innerHTML += `<div class="aa ${val && val.trim() ? "" : "empty"}">${val && val.trim() ? val : "Sin responder aún."}</div>`;
+      }
+      wrap.appendChild(qa);
+    });
+  });
+  main.appendChild(wrap);
+  const nav = document.createElement("div"); nav.className = "nav-buttons";
+  const backBtn = document.createElement("button");
+  backBtn.className = "navbtn ghost"; backBtn.textContent = "← Volver";
+  backBtn.onclick = ()=>{ state.viewMode="form"; state.currentSection = Math.min(state.furthestSection, SECTIONS.length-1); render(); window.scrollTo(0,0); };
+  nav.appendChild(backBtn); main.appendChild(nav);
+}
+
+function renderMain(){
+  topbar.style.display = "flex";
+  centerScreen.style.display = "none";
+  main.style.display = "block";
+  updateProgress();
+  document.getElementById("topbarEmail").textContent = currentUser ? currentUser.email : "";
+  if(state.viewMode === "summary") renderSummary();
+  else renderFormSection();
+}
+
+function render(){
+  if(state.viewMode === "login") renderLogin();
+  else if(state.viewMode === "check-email") return; // ya renderizado
+  else if(state.viewMode === "blocked") renderBlocked();
+  else if(state.viewMode === "intro") renderIntro();
+  else renderMain();
+}
+
+document.getElementById("viewSummaryBtn").onclick = ()=>{ state.viewMode="summary"; render(); window.scrollTo(0,0); };
+document.getElementById("logoutBtn").onclick = ()=> signOut(auth);
+
+/* ---------------- Arranque de sesión ---------------- */
+async function afterLogin(user){
+  currentUser = user;
+  const fp = await getFingerprint();
+  const lockRef = doc(db, "device_locks", fp);
+  const lockSnap = await getDoc(lockRef);
+  if(lockSnap.exists() && lockSnap.data().uid !== user.uid){
+    state.viewMode = "blocked"; render(); return;
+  }
+  if(!lockSnap.exists()){
+    try{ await setDoc(lockRef, { uid:user.uid, email:user.email, createdAt: serverTimestamp() }); }
+    catch(e){ console.warn("No se pudo registrar el dispositivo", e); }
+  }
+
+  docRef = doc(db, "respuestas", user.uid);
+  const snap = await getDoc(docRef);
+  if(!snap.exists()){
+    await setDoc(docRef, {
+      email: user.email, createdAt: serverTimestamp(), updatedAt: serverTimestamp(),
+      viewMode: "intro", currentSection: 0, furthestSection: 0, answers: {}
+    });
+    state.viewMode = "intro"; state.currentSection = 0; state.furthestSection = 0; state.answers = {};
+  }else{
+    const d = snap.data();
+    state.answers = d.answers || {};
+    state.currentSection = d.currentSection || 0;
+    state.furthestSection = d.furthestSection || 0;
+    state.viewMode = ["intro","form","summary"].includes(d.viewMode) ? d.viewMode : "intro";
+  }
+  render();
+}
+
+onAuthStateChanged(auth, async (user)=>{
+  if(user){
+    await afterLogin(user);
+  }else{
+    if(isSignInWithEmailLink(auth, window.location.href)){
+      let email = window.localStorage.getItem(EMAIL_STORAGE_KEY);
+      if(!email){
+        email = window.prompt("Confirmá tu email para completar el ingreso:");
+      }
+      try{
+        const result = await signInWithEmailLink(auth, email, window.location.href);
+        window.localStorage.removeItem(EMAIL_STORAGE_KEY);
+        window.history.replaceState({}, document.title, window.location.pathname);
+        // onAuthStateChanged se vuelve a disparar con el user ya logueado
+      }catch(e){
+        console.error(e);
+        state.viewMode = "login"; render();
+      }
+    }else{
+      state.viewMode = "login"; render();
+    }
+  }
+});
+</script>
+</body>
+</html>

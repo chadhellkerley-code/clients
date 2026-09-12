@@ -1,0 +1,27 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isAdmin() {
+      return request.auth != null &&
+        request.auth.token.email in ['matidiazlife@gmail.com'];
+    }
+
+    // Cada cliente solo puede leer/escribir su propio documento de respuestas.
+    // El admin puede leer y escribir cualquiera (para destrabar o corregir a mano).
+    match /respuestas/{uid} {
+      allow read, write: if request.auth != null && request.auth.uid == uid;
+      allow read, write: if isAdmin();
+    }
+
+    // Un "device lock" por huella de navegador. Solo se puede CREAR (no
+    // sobreescribir) — si ya existe, Firestore lo trata como "update" y
+    // esta regla lo rechaza, salvo que seas admin.
+    match /device_locks/{fingerprint} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null
+                    && request.resource.data.uid == request.auth.uid;
+      allow update, delete: if isAdmin();
+    }
+  }
+}
